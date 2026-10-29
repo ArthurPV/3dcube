@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 
 #include <X11/Xlib.h>
 
@@ -79,17 +80,19 @@ void draw_square__3DCube(int cx, int cy, int c, struct Square *square_out)
 	int xi2 = xi1 + c;
 	int yi = cy - c;
 
-	square_out->_1.x = xi1;
-	square_out->_1.y = yi;
+	square_out->_1.x = (xi1 - cx) * cos(CURRENT_TETA_RAD()) - (yi - cy) * sin(CURRENT_TETA_RAD()) + cx;
+	square_out->_1.y = (xi1 - cx) * sin(CURRENT_TETA_RAD()) + (yi - cy) * cos(CURRENT_TETA_RAD()) + cy;
 
-	square_out->_2.x = xi2;
-	square_out->_2.y = yi;
+	square_out->_2.x = (xi2 - cx) * cos(CURRENT_TETA_RAD()) - (yi - cy) * sin(CURRENT_TETA_RAD()) + cx;
+	square_out->_2.y = (xi2 - cx) * sin(CURRENT_TETA_RAD()) + (yi - cy) * cos(CURRENT_TETA_RAD()) + cy;
 
-	square_out->_3.x = xi1;
-	square_out->_3.y = yi + c;
+	yi += c;
 
-	square_out->_4.x = xi2;
-	square_out->_4.y = yi + c;
+	square_out->_3.x = (xi1 - cx) * cos(CURRENT_TETA_RAD()) - (yi - cy) * sin(CURRENT_TETA_RAD()) + cx;
+	square_out->_3.y = (xi1 - cx) * sin(CURRENT_TETA_RAD()) + (yi - cy) * cos(CURRENT_TETA_RAD()) + cy;
+
+	square_out->_4.x = (xi2 - cx) * cos(CURRENT_TETA_RAD()) - (yi - cy) * sin(CURRENT_TETA_RAD()) + cx;
+	square_out->_4.y = (xi2 - cx) * sin(CURRENT_TETA_RAD()) + (yi - cy) * cos(CURRENT_TETA_RAD()) + cy;
 
 	XDrawLine(display, window_pixels, window_gc, square_out->_1.x, square_out->_1.y, square_out->_2.x, square_out->_2.y);
 	XDrawLine(display, window_pixels, window_gc, square_out->_2.x, square_out->_2.y, square_out->_4.x, square_out->_4.y);
@@ -135,6 +138,11 @@ void handle_events__3DCube()
 {
 	XEvent event;
 	bool running = true;
+	struct timespec tm;
+
+	// 25ms
+	tm.tv_sec = 0;
+	tm.tv_nsec = 25000000;
 
 	while (running) {
 		while (XPending(display) > 0) {
@@ -155,6 +163,10 @@ void handle_events__3DCube()
 				default:
 					break;
 			}
+		}
+
+		if (nanosleep(&tm, NULL) < 0) {
+			LOG_ERROR("nanosleep() call failed\n");
 		}
 
 		draw__3DCube(window_width / 2, window_height / 2, 100);
