@@ -34,6 +34,25 @@
 
 #define RGB(r, g, b) ((r) << 16 | (g) << 8 | (b))
 
+struct Vec2 {
+	int x, y;
+};
+
+// 1========2
+// |        |
+// |        |
+// |        |
+// 3========4
+struct Square {
+	struct Vec2 _1, _2, _3, _4;
+};
+
+static void draw_square__3DCube(int x, int y, int c, struct Square *square_out);
+
+static void join_squares__3DCube(const struct Square *s1, const struct Square *s2);
+
+static void draw__3DCube(int x, int y, int c);
+
 static void handle_events__3DCube();
 
 static void close__3DCube();
@@ -46,26 +65,72 @@ static Atom wmProtocols = {0};
 static const unsigned int window_width = 500;
 static const unsigned int window_height = 500;
 
+void draw_square__3DCube(int x, int y, int c, struct Square *square_out)
+{
+	int xi1 = x - c;
+	int xi2 = xi1 + c;
+	int yi = y - c;
+
+	square_out->_1.x = xi1;
+	square_out->_1.y = yi;
+
+	square_out->_2.x = xi2;
+	square_out->_2.y = yi;
+
+	square_out->_3.x = xi1;
+	square_out->_3.y = yi + c;
+
+	square_out->_4.x = xi2;
+	square_out->_4.y = yi + c;
+
+	XDrawLine(display, window, window_gc, square_out->_1.x, square_out->_1.y, square_out->_2.x, square_out->_2.y);
+	XDrawLine(display, window, window_gc, square_out->_2.x, square_out->_2.y, square_out->_4.x, square_out->_4.y);
+	XDrawLine(display, window, window_gc, square_out->_1.x, square_out->_1.y, square_out->_3.x, square_out->_3.y);
+	XDrawLine(display, window, window_gc, square_out->_3.x, square_out->_3.y, square_out->_4.x, square_out->_4.y);
+}
+
+void join_squares__3DCube(const struct Square *s1, const struct Square *s2)
+{
+	XDrawLine(display, window, window_gc, s1->_1.x, s1->_1.y, s2->_1.x, s2->_1.y);
+	XDrawLine(display, window, window_gc, s1->_2.x, s1->_2.y, s2->_2.x, s2->_2.y);
+	XDrawLine(display, window, window_gc, s1->_3.x, s1->_3.y, s2->_3.x, s2->_3.y);
+	XDrawLine(display, window, window_gc, s1->_4.x, s1->_4.y, s2->_4.x, s2->_4.y);
+}
+
+void draw__3DCube(int x, int y, int c)
+{
+	XClearWindow(display, window);
+	XSetForeground(display, window_gc, RGB(255, 255, 255));
+
+	struct Square s1 = {0}, s2 = {0};
+
+	draw_square__3DCube(x, y, c, &s1);
+	draw_square__3DCube(x + c / 2, y - c / 2, c, &s2);
+	join_squares__3DCube(&s1, &s2);
+}
+
 void handle_events__3DCube()
 {
 	XEvent event;
 	bool running = true;
 
 	while (running) {
-		while (XPending(display) > 0) {
-			XNextEvent(display, &event);
+		XNextEvent(display, &event);
 
-			switch (event.type) {
-				case ClientMessage:
-					if (event.xclient.message_type == wmProtocols &&
-						(Atom)event.xclient.data.l[0] == wmDeleteWindow) {
-						running = false;
-					}
+		switch (event.type) {
+			case ClientMessage:
+				if (event.xclient.message_type == wmProtocols &&
+					(Atom)event.xclient.data.l[0] == wmDeleteWindow) {
+					running = false;
+				}
 
-					break;
-				default:
-					break;
-			}
+				break;
+			case Expose:
+				draw__3DCube(window_width / 2, window_height / 2, 100);
+
+				break;
+			default:
+				break;
 		}
 	}
 }
